@@ -4,6 +4,7 @@ import json
 import jwt
 from datetime import datetime, timedelta
 from functools import wraps
+import os
 
 
 def token_obrigatorio(f):
@@ -15,8 +16,10 @@ def token_obrigatorio(f):
         if not token:
             return jsonify({'mensagem': 'token não incluido'}, 401)
         try:
-            resultado = jwt.decode(token, app.config['SECRET_KEY'], algorithms=["HS256"])
-            autor = Autor.query.filter_by(id_autor=resultado['id_autor']).first()
+            resultado = jwt.decode(
+                token, app.config['SECRET_KEY'], algorithms=["HS256"])
+            autor = Autor.query.filter_by(
+                id_autor=resultado['id_autor']).first()
         except:
             return jsonify({'mensagem': 'token inválido'}, 401)
         return f(autor, *args, **kwargs)
@@ -38,7 +41,6 @@ def login():
     return make_response('Login inválido', 401, {'WWW-Authenticate': 'Basic realm="Login obrigatório"'})
 
 
-
 @app.route('/postagens')
 @token_obrigatorio
 def obter_postagens(autor):
@@ -49,9 +51,9 @@ def obter_postagens(autor):
         postagem_atual['id_postagem'] = postagem.id_postagem
         postagem_atual['titulo'] = postagem.titulo
         postagem_atual['id_autor'] = postagem.id_autor
-        
+
         lista_de_postagens.append(postagem_atual)
-    
+
     return jsonify({'lista de postagens': lista_de_postagens})
 
 
@@ -73,7 +75,8 @@ def obter_postagem(autor, id_postagem):
 @token_obrigatorio
 def nova_postagens(autor):
     nova_postagem = request.get_json()
-    postagem = Postagem(titulo=nova_postagem['titulo'], id_autor=nova_postagem['id_autor'])
+    postagem = Postagem(
+        titulo=nova_postagem['titulo'], id_autor=nova_postagem['id_autor'])
 
     db.session.add(postagem)
     db.session.commit()
@@ -85,7 +88,8 @@ def nova_postagens(autor):
 @token_obrigatorio
 def alterar_postagem(autor, id_postagem):
     postagem_a_alterar = request.get_json()
-    postagem_existente = Postagem.query.filter_by(id_postagem=id_postagem).first()
+    postagem_existente = Postagem.query.filter_by(
+        id_postagem=id_postagem).first()
     if not postagem_existente:
         return jsonify({'Mensagem': 'Não foi possivel alterar postagem'})
     try:
@@ -125,9 +129,8 @@ def obter_autores(autor):
         autor_atual['nome'] = autor.nome
         autor_atual['email'] = autor.email
         lista_de_autores.append(autor_atual)
-    
-    return jsonify({'lista de autores': lista_de_autores})
 
+    return jsonify({'lista de autores': lista_de_autores})
 
 
 @app.route('/autores/<int:id_autor>', methods=['GET'])
@@ -144,7 +147,6 @@ def obter_autor_por_indice(autor, id_autor):
     return jsonify(f'Você buscou pelo autor {autor_atual}')
 
 
-
 @app.route('/autores', methods=['POST'])
 @token_obrigatorio
 def novo_autor(autor):
@@ -156,7 +158,6 @@ def novo_autor(autor):
     db.session.commit()
 
     return jsonify({'Mensagem': 'Novo autor criado com sucesso'}, 200)
-
 
 
 @app.route('/autores/<int:id_autor>', methods=['PUT'])
@@ -184,7 +185,6 @@ def alterar_autor(autor, id_autor):
     return jsonify({'Mensagem': 'Usuário alterado com sucesso'}, 200)
 
 
-
 @app.route('/autores/<int:id_autor>', methods=['DELETE'])
 @token_obrigatorio
 def excluir_autor(autor, id_autor):
@@ -197,5 +197,5 @@ def excluir_autor(autor, id_autor):
     return jsonify({'Mensagem': 'Usuário deletado com sucesso'}, 200)
 
 
-
-app.run(port=5000, host='localhost', debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, port=os.getenv("PORT", default=5000))
